@@ -1,0 +1,15 @@
+{
+  "name": "Cencera-agent",
+  "version": "1.0.0",
+  "description": "Cencera AI Agent Smart Contract",
+  "main": "index.js",
+  "scripts": {
+    "test": "hardhat test"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "hardhat": "^2.19.0"
+  }
+}

@@ -1,0 +1,17 @@
+[00:00:02.072] Server  LOG     ✓ Ready in 1474ms
+[00:00:45.965] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:03:59.323] Server  LOG     ✓ Compiled in 343ms
+[00:04:01.995] Browser ERROR   Failed to fetch agents: {"code":"ERR_NETWORK","config":{"adapter":["xhr","http","fetch"],"allowAbsoluteUrls":true,"env":{},"headers":{"Accept":"application/json, text/plain, */*"},"maxBodyLength":-1,"maxContentLength":-1,"method":"get","timeout":0,"transformRequest":[null],"transformResponse":[null],"transitional":{"clarifyTimeoutError":false,"forcedJSONParsing":true,"legacyInterceptorReqResOrdering":true,"silentJSONParsing":true},"url":"http://localhost:8000/agents","xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN"},"message":"Network Error","name":"AxiosError","stack":"AxiosError: Network Error\n    at XMLHttpRequest.handleError (http://localhost:3000/_next/static/chunks/9e883_axios_lib_a21a55dc._.js:2504:25)\n    at Axios.request (http://localhost:3000/_next/static/chunks/9e883_axios_lib_a21a55dc._.js:3264:49)\n    at async fetchAgentsList (http://localhost:3000/_next/static/chunks/frontend_app_dc23e153._.js?id=%255Bproject%255D%252Ffrontend%252Fapp%252Fpage.js+%255Bapp-client%255D+%2528ecmascript%2529:70:30)"}
+[00:04:04.329] Server  LOG     ✓ Compiled in 136ms
+[00:04:06.087] Server  LOG     ✓ Compiled in 61ms
+[00:15:58.366] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:16:00.871] Browser ERROR   Failed to fetch agents: {"code":"ERR_NETWORK","config":{"adapter":["xhr","http","fetch"],"allowAbsoluteUrls":true,"env":{},"headers":{"Accept":"application/json, text/plain, */*"},"maxBodyLength":-1,"maxContentLength":-1,"method":"get","timeout":0,"transformRequest":[null],"transformResponse":[null],"transitional":{"clarifyTimeoutError":false,"forcedJSONParsing":true,"legacyInterceptorReqResOrdering":true,"silentJSONParsing":true},"url":"http://localhost:8000/agents","xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN"},"message":"Network Error","name":"AxiosError","stack":"AxiosError: Network Error\n    at XMLHttpRequest.handleError (http://localhost:3000/_next/static/chunks/9e883_axios_lib_a21a55dc._.js:2504:25)\n    at Axios.request (http://localhost:3000/_next/static/chunks/9e883_axios_lib_a21a55dc._.js:3264:49)\n    at async fetchAgentsList (http://localhost:3000/_next/static/chunks/frontend_app_dc23e153._.js:339:30)"}
+[00:16:08.840] Server  LOG     ✓ Compiled in 235ms
+[00:26:31.616] Server  LOG     ✓ Compiled in 18ms
+[00:27:30.958] Server  LOG     ✓ Compiled in 184ms
+[00:28:12.447] Server  LOG     ✓ Compiled in 72ms
+[00:31:48.844] Server  LOG     ✓ Compiled in 101ms
+[00:31:50.799] Server  LOG     ✓ Compiled in 55ms
+[00:37:14.331] Server  LOG     ✓ Compiled in 61ms
+[00:47:11.706] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:47:19.132] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
