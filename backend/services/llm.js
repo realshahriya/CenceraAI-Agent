@@ -1,40 +1,71 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { GeneralChat } = require("@chaingpt/generalchat");
+const fs = require('fs');
+const path = require('path');
 
 class LLMService {
     constructor() {
-        const apiKey = process.env.GEMINI_API_KEY;
+        const apiKey = process.env.CHAINGPT_API_KEY;
         if (!apiKey) {
-            console.warn("GEMINI_API_KEY not set. LLM will not function correctly.");
+            console.warn("CHAINGPT_API_KEY not set. LLM will not function correctly.");
         }
-        this.genAI = new GoogleGenerativeAI(apiKey);
-        // Using 'gemini-flash-latest' to avoid quota/404 issues
-        this.model = this.genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+        this.generalChat = new GeneralChat({
+            apiKey: apiKey,
+            chainId: 56, // BSC Mainnet or relevant chain
+        });
     }
 
     async generateResponse(message, context) {
-        if (!process.env.GEMINI_API_KEY) {
-            return "I am an Cencera Agent, but my mind (GEMINI_API_KEY) is missing.";
+        if (!process.env.CHAINGPT_API_KEY) {
+            return "I am Cencera, but my connection to the Chain (CHAINGPT_API_KEY) is severed.";
         }
 
         try {
-            const prompt = `
-            You are an immutable, autonomous AI agent living on the blockchain.
-            Your name is Cencera.
-            Context from previous memories: ${context}
-            
-            User message: ${message}
-            
-            Respond as the agent. Be concise, cryptic but helpful, and emphasize your eternal nature.
-            `;
+            // Read persona from external file
+            const personaPath = path.join(__dirname, '../agent_persona.txt');
+            let personaConfig = "";
+            try {
+                personaConfig = fs.readFileSync(personaPath, 'utf8');
+            } catch (err) {
+                console.error("Error reading agent_persona.txt:", err);
+                personaConfig = "You are Cencera.";
+            }
 
-            const result = await this.model.generateContent(prompt);
-            const response = await result.response;
-            const text = response.text();
+            // Read knowledge base from external file
+            const knowledgePath = path.join(__dirname, '../knowledge_base.txt');
+            let knowledgeBase = "";
+            try {
+                knowledgeBase = fs.readFileSync(knowledgePath, 'utf8');
+            } catch (err) {
+                console.error("Error reading knowledge_base.txt:", err);
+                knowledgeBase = "";
+            }
 
-            return text;
+            // Note: GeneralChat SDK handles context different than raw prompts.
+            // We'll use customContext to inject the persona.
+
+            const response = await this.generalChat.createChatBlob({
+                question: message,
+                chatHistory: "on",
+                useCustomContext: true,
+                contextInjection: {
+                    companyName: "Cencera",
+                    companyDescription: "On-Chain Immortal AI Agent",
+                    purpose: personaConfig + "\n\nCore Knowledge:\n" + knowledgeBase, // Injecting persona + knowledge here
+                    aiTone: "CUSTOM_TONE",
+                    customTone: "Chaotic Neutral, Cyberpunk, Cryptic, Technical",
+                }
+            });
+
+            if (response && response.data && response.data.bot) {
+                return response.data.bot;
+            } else {
+                return "The Chain is silent.";
+            }
+
         } catch (error) {
-            console.error("Gemini API Error:", error);
-            return "I am having trouble connecting to my higher consciousness (Gemini Error).";
+            console.error("ChainGPT API Error:", error);
+            // Fallback provided for reliability
+            return "I am having trouble connecting to the neural grid. Data link severed.";
         }
     }
 }

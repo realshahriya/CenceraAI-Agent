@@ -12,8 +12,8 @@ describe("CenceraAgent", function () {
     async function deployCenceraAgentFixture() {
         const [owner, otherAccount] = await ethers.getSigners();
 
-        const CenceraAgent = await ethers.getContractFactory("CenceraAgent");
-        const CenceraAgent = await CenceraAgent.deploy();
+        const CenceraAgentFactory = await ethers.getContractFactory("CenceraAgent");
+        const CenceraAgent = await CenceraAgentFactory.deploy();
 
         return { CenceraAgent, owner, otherAccount };
     }

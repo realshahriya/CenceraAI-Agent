@@ -17,6 +17,10 @@ class MemoryService {
         this.memories.set(agentId, truncatedMemory);
         console.log(`Updated memory for Agent ${agentId}`);
     }
+
+    async getKnownAgents() {
+        return Array.from(this.memories.keys());
+    }
 }
 
 module.exports = { memoryService: new MemoryService() };

@@ -11,10 +11,10 @@ Hackathon Roadmap & Builder Guide
 Core Features:
 
 * On-chain agent identity (smart contract)
-* Decentralized memory storage (Membase)
+* Decentralized memory storage (Utilizing **Unibase's Membase**)
 * AI logic layer (LLM integration)
 * Cross-platform support (Web + Telegram)
-* Autonomous evolution system
+* Autonomous evolution & Action Execution (via **BitAgent Launchpad**)
 * Wallet-based ownership
 
 Goal:
@@ -53,8 +53,8 @@ LLM (AI Model)
 * Express
 * Ethers.js
 * OpenAI (or open-source LLM)
-* Membase API / SDK
-* BitAgent SDK
+* **Membase** (Unibase Decentralized Memory Layer)
+* **BitAgent** (AI Agent Launchpad & Execution)
 
 ## Frontend
 
@@ -212,7 +212,10 @@ contract CenceraAgent {
 
 # 🚀 Final Goal
 
-* On-chain identity
-* Decentralized memory
-* Cross-platform interaction
-* Autonomous evolution
+* **Unibase Ecosystem Integration:** Complete Membase & BitAgent workflows.
+* **On-chain Identity:** BNB Chain Smart Contract.
+* **Decentralized Memory:** Persistent, sovereign data.
+* **Cross-platform:** Seamless Telegram <-> Web interaction.
+* **Autonomous Evolution:** Agents that grow and act without user prompting.
+
+> **Target:** Win part of the $500K Liquidity Funding & Unibase Ecosystem Support.
