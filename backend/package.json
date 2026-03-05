@@ -10,10 +10,12 @@
     "dependencies": {
         "@chaingpt/generalchat": "^0.0.17",
         "@google/generative-ai": "^0.24.1",
+        "axios": "^1.13.5",
         "cors": "^2.8.5",
-        "dotenv": "^16.3.1",
+        "dotenv": "^16.6.1",
         "ethers": "^6.9.0",
         "express": "^4.18.2",
+        "googleapis": "^171.4.0",
         "node-cron": "^4.2.1",
         "node-telegram-bot-api": "^0.67.0"
     },

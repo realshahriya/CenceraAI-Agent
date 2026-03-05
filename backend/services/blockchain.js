@@ -18,8 +18,62 @@ class BlockchainService {
             "function getAgent(uint256 _agentId) view returns (tuple(uint256 id, address owner, uint96 innovationScore, string memoryHash))",
             "function updateMemory(uint256 _agentId, string calldata _newMemoryHash) external",
             "function createAgent(string calldata _initialMemoryHash) external returns (uint256)",
-            "function getAgentsByOwner(address _owner) external view returns (uint256[])"
+            "function getAgentsByOwner(address _owner) external view returns (uint256[])",
+            // --- New SSI Methods ---
+            "function registerIdentity(string calldata _did, string calldata _personalDataHash) external",
+            "function updatePersonalData(string calldata _newPersonalDataHash) external",
+            "function authorizeAgent(address _agentAddress) external",
+            "function revokeAgent(address _agentAddress) external",
+            "function identities(address) view returns (string did, string personalDataHash, bool isActive)",
+            "function authorizedAgents(address, address) view returns (bool)"
         ];
+    }
+
+    // --- SELF SOVEREIGN IDENTITY (SSI) WRAPPERS ---
+
+    async registerUserIdentity(did, personalDataHash) {
+        if (!this.contractAddress || !this.wallet) {
+            console.warn("Skipping SSI Registration (Dev Mode)");
+            return true;
+        }
+
+        try {
+            console.log(`[Blockchain] Registering SSI Identity: ${did}...`);
+            const contract = new ethers.Contract(this.contractAddress, this.abi, this.wallet);
+
+            // Check if active first
+            const identity = await contract.identities(this.wallet.address);
+            if (identity.isActive) {
+                console.log(`[Blockchain] SSI Identity already active for this wallet.`);
+                return true;
+            }
+
+            const tx = await contract.registerIdentity(did, personalDataHash);
+            await tx.wait();
+            console.log(`[Blockchain] SSI Identity ${did} registered successfully.`);
+            return true;
+        } catch (error) {
+            console.error("SSI Registration failed:", error);
+            return false;
+        }
+    }
+
+    async authorizeAIAgent(agentAddress) {
+        if (!this.contractAddress || !this.wallet) return;
+
+        try {
+            const contract = new ethers.Contract(this.contractAddress, this.abi, this.wallet);
+
+            const isAuth = await contract.authorizedAgents(this.wallet.address, agentAddress);
+            if (isAuth) return; // Already authorized
+
+            console.log(`[Blockchain] Authorizing AI Agent ${agentAddress}...`);
+            const tx = await contract.authorizeAgent(agentAddress);
+            await tx.wait();
+            console.log(`[Blockchain] AI Agent ${agentAddress} Authorized.`);
+        } catch (error) {
+            console.error("SSI Authorization failed:", error);
+        }
     }
 
     async verifyOwnership(agentId, walletAddress) { // ... existing code ... 

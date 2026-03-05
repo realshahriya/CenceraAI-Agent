@@ -152,6 +152,39 @@ contract CenceraAgent {
 
 ---
 
+# 🤖 X/Twitter Agent Capabilities
+
+**Step 1:**
+Find crypto projects. Use these keywords: Crypto, Blockchain, Cryptocurrency, RWA, Defi, DePin, TGE, token generation event, mainnet launch, testnet, whitepaper, protocol, audit, smart contract, zk, layer 1, layer 2, wallet, dex, swap, token, tokenomics, coin, airdrop
+
+**Step 2:**
+Check the account is verified or not (blue or yellow tick)
+
+**Step 3:**
+Read the bio of the account to ensure the account is a crypto project, not a user account
+
+**Step 4:**
+The account should be projects account not users account
+
+**Step 5:**
+The followers should be >300 to <36000
+
+**Step 6:**
+There should be a post or retweet in past 1 week from today's data
+
+**Step 7:**
+Ensure that the project should not be a NFT project, If its a NFT project skip
+
+**Step 8:**
+Copy the project website link
+
+**Step 9:**
+Add the project details (Name, website link, X account link, category) into my Google sheet named "Agent X Sheet"
+
+*Note: Use [docs.twitterapi.io](https://docs.twitterapi.io/introduction) for Twitter-related works!*
+
+---
+
 # 📅 30-Day Roadmap
 
 ## PHASE 1: Smart Contract Foundation (Days 1–5)

@@ -43,6 +43,9 @@ class LLMService {
             // Note: GeneralChat SDK handles context different than raw prompts.
             // We'll use customContext to inject the persona.
 
+            // Build the dynamic purpose block that includes the persona, knowledge, AND user memory!
+            const dynamicPurpose = `${personaConfig}\n\nCore Knowledge:\n${knowledgeBase}\n\nRecent Memory Context:\n${context || "No prior memory."}`;
+
             const response = await this.generalChat.createChatBlob({
                 question: message,
                 chatHistory: "on",
@@ -50,7 +53,7 @@ class LLMService {
                 contextInjection: {
                     companyName: "Cencera",
                     companyDescription: "On-Chain Immortal AI Agent",
-                    purpose: personaConfig + "\n\nCore Knowledge:\n" + knowledgeBase, // Injecting persona + knowledge here
+                    purpose: dynamicPurpose, // Injecting persona + knowledge + short term memory here
                     aiTone: "CUSTOM_TONE",
                     customTone: "Chaotic Neutral, Cyberpunk, Cryptic, Technical",
                 }

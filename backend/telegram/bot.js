@@ -34,64 +34,68 @@ class TelegramService {
 
     setupHandlers() {
         this.bot.onText(/\/start/, (msg) => {
-            this.bot.sendMessage(msg.chat.id,
-                "*Cencera Neural Link Established.*\n" +
+            const chatId = msg.chat.id;
+            const text = "*Cencera Neural Link Established.*\n" +
                 "I am your sovereign AI agent on the BNB Chain.\n" +
                 "I learn, I evolve, and I persist.\n\n" +
-                "Try /status to see my evolution.",
-                { parse_mode: 'Markdown' });
+                "What would you like to do?";
+
+            const options = {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            { text: '📊 View Status', callback_data: 'action_status' },
+                            { text: '🧠 Read Memory', callback_data: 'action_memory' }
+                        ],
+                        [
+                            { text: '❓ Need Help?', callback_data: 'action_help' },
+                            { text: '🔄 Clear Session', callback_data: 'action_clear' }
+                        ]
+                    ]
+                }
+            };
+            this.bot.sendMessage(chatId, text, options);
         });
 
         this.bot.onText(/\/help/, (msg) => {
-            const helpText =
-                "*Available Commands:*\n" +
-                "/status - View your Agent's On-Chain stats.\n" +
-                "/memory - See what I currently remember about our conversation.\n" +
-                "/clear - Wipe my short-term memory of this session.\n\n" +
-                "*Tools:*\n" +
-                "- Ask me to *PIN* a message.\n" +
-                "- Ask me to *DELETE* a message.\n" +
-                "- Ask for *CODE* (Solidity, JS, Python).";
+            this.sendHelpMenu(msg.chat.id);
+        });
 
-            this.bot.sendMessage(msg.chat.id, helpText, { parse_mode: 'Markdown' });
+        // Add callback query handler for the inline buttons
+        this.bot.on('callback_query', async (callbackQuery) => {
+            const msg = callbackQuery.message;
+            const data = callbackQuery.data;
+            const chatId = msg.chat.id;
+
+            // Acknowledge the callback immediately to remove loading state on button
+            this.bot.answerCallbackQuery(callbackQuery.id);
+
+            try {
+                if (data === 'action_status') {
+                    await this.handleStatusRequest(chatId);
+                } else if (data === 'action_memory') {
+                    await this.handleMemoryRequest(chatId);
+                } else if (data === 'action_clear') {
+                    await this.handleClearRequest(chatId);
+                } else if (data === 'action_help') {
+                    this.sendHelpMenu(chatId);
+                }
+            } catch (error) {
+                console.error("Callback Query Error:", error);
+            }
         });
 
         this.bot.onText(/\/status/, async (msg) => {
-            const chatId = msg.chat.id;
-            await this.bot.sendChatAction(chatId, 'typing');
-
-            const details = await blockchainService.getAgentDetails(chatId);
-            if (!details) {
-                this.bot.sendMessage(chatId, "⚠️ *Agent Not Found On-Chain.*\nTalk to me first to initialize your subagent.", { parse_mode: 'Markdown' });
-                return;
-            }
-
-            const statusMsg =
-                `*🛡️ Cencera Subagent Request*\n\n` +
-                `*🆔 Agent ID:* \`${details.id}\`\n` +
-                `*🧠 Innovation Score:* \`${details.score}\`\n` +
-                `*🔗 Owner:* \`${details.owner}\`\n` +
-                `*💾 Memory Hash:* \`${details.memoryHash.slice(0, 15)}...\`\n\n` +
-                `_I am evolving with every interaction._`;
-
-            this.bot.sendMessage(chatId, statusMsg, { parse_mode: 'Markdown' });
+            await this.handleStatusRequest(msg.chat.id);
         });
 
         this.bot.onText(/\/memory/, async (msg) => {
-            const chatId = msg.chat.id;
-            const memory = await memoryService.getMemory(chatId);
-            // Truncate if too long for a single message
-            const preview = memory.length > 500 ? memory.slice(-500) : memory;
-            this.bot.sendMessage(chatId, `*🧠 Current Memory Context:*\n\n\`...${preview}\``, { parse_mode: 'Markdown' });
+            await this.handleMemoryRequest(msg.chat.id);
         });
 
         this.bot.onText(/\/clear/, async (msg) => {
-            const chatId = msg.chat.id;
-            // We can't actually "delete" from the Map easily without method, 
-            // so we'll just overwrite it with empty state or add a method to memoryService.
-            // For now, let's just say we cleared it (pseudo-clear or append reset marker).
-            await memoryService.updateMemory(chatId, "SYSTEM", "MEMORY_RESET_BY_USER");
-            this.bot.sendMessage(chatId, "`[SYSTEM] Short-term memory buffer flushed.`", { parse_mode: 'Markdown' });
+            await this.handleClearRequest(msg.chat.id);
         });
 
         this.bot.on('message', async (msg) => {
@@ -124,8 +128,15 @@ class TelegramService {
                 // Use the raw response to check for tags, not the formatted one
                 if (response.includes('<<PIN>>')) {
                     try {
-                        await this.bot.pinChatMessage(chatId, sentMsg.message_id);
-                        console.log(`[Bot] Pinned message ${sentMsg.message_id}`);
+                        // The user wants to pin a message. 
+                        // Did they reply to a specific message to pin it?
+                        let targetMessageId = sentMsg.message_id; // Default to the bot's newly generated text
+                        if (msg.reply_to_message && msg.reply_to_message.message_id) {
+                            targetMessageId = msg.reply_to_message.message_id; // Pin the message they replied to
+                        }
+
+                        await this.bot.pinChatMessage(chatId, targetMessageId);
+                        console.log(`[Bot] Pinned message ${targetMessageId}`);
                     } catch (e) {
                         console.error(`[Bot] Failed to pin message:`, e.message);
                     }
@@ -133,8 +144,12 @@ class TelegramService {
 
                 if (response.includes('<<DELETE_USER_MSG>>')) {
                     try {
-                        await this.bot.deleteMessage(chatId, msg.message_id);
-                        console.log(`[Bot] Deleted user message ${msg.message_id}`);
+                        let targetMessageId = msg.message_id;
+                        if (msg.reply_to_message && msg.reply_to_message.message_id) {
+                            targetMessageId = msg.reply_to_message.message_id;
+                        }
+                        await this.bot.deleteMessage(chatId, targetMessageId);
+                        console.log(`[Bot] Deleted user message ${targetMessageId}`);
                     } catch (e) {
                         console.error(`[Bot] Failed to delete user message:`, e.message);
                     }
@@ -149,6 +164,54 @@ class TelegramService {
                 this.bot.sendMessage(chatId, "I am momentarily confused. Please try again.");
             }
         });
+    }
+
+    sendHelpMenu(chatId) {
+        const helpText =
+            "*Interactive Capabilities:*\n" +
+            "Tap the buttons under the /start menu to navigate.\n\n" +
+            "*Available Text Commands:*\n" +
+            "/status - View your Agent's On-Chain stats.\n" +
+            "/memory - See what I currently remember about our conversation.\n" +
+            "/clear - Wipe my short-term memory of this session.\n\n" +
+            "*Tools:*\n" +
+            "- Ask me to *PIN* a message.\n" +
+            "- Ask me to *DELETE* a message.\n" +
+            "- Ask for *CODE* (Solidity, JS, Python).";
+
+        this.bot.sendMessage(chatId, helpText, { parse_mode: 'Markdown' });
+    }
+
+    async handleStatusRequest(chatId) {
+        await this.bot.sendChatAction(chatId, 'typing');
+
+        const details = await blockchainService.getAgentDetails(chatId);
+        if (!details) {
+            this.bot.sendMessage(chatId, "⚠️ *Agent Not Found On-Chain.*\nTalk to me first to initialize your subagent.", { parse_mode: 'Markdown' });
+            return;
+        }
+
+        const statusMsg =
+            `*🛡️ Cencera Subagent Request*\n\n` +
+            `*🆔 Agent ID:* \`${details.id}\`\n` +
+            `*🧠 Innovation Score:* \`${details.score}\`\n` +
+            `*🔗 Owner:* \`${details.owner}\`\n` +
+            `*💾 Memory Hash:* \`${details.memoryHash.slice(0, 15)}...\`\n\n` +
+            `_I am evolving with every interaction._`;
+
+        this.bot.sendMessage(chatId, statusMsg, { parse_mode: 'Markdown' });
+    }
+
+    async handleMemoryRequest(chatId) {
+        const memory = await memoryService.getMemory(chatId);
+        // Truncate if too long for a single message
+        const preview = memory.length > 500 ? memory.slice(-500) : memory;
+        this.bot.sendMessage(chatId, `*🧠 Current Memory Context:*\n\n\`...${preview}\``, { parse_mode: 'Markdown' });
+    }
+
+    async handleClearRequest(chatId) {
+        await memoryService.updateMemory(chatId, "SYSTEM", "MEMORY_RESET_BY_USER");
+        this.bot.sendMessage(chatId, "`[SYSTEM] Short-term memory buffer flushed.`", { parse_mode: 'Markdown' });
     }
 
     formatMessageForTelegram(text) {

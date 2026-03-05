@@ -12,14 +12,14 @@ export default function Home() {
 
   // Constants
   const BACKEND_URL = 'http://localhost:3001';
+  const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0xCA10569a993154c051E0F4306172743375E63fC1';
 
-  // Mock Agent Data for Prototype
-  const MOCK_AGENT = {
-    id: 1,
-    innovationScore: 42,
-    memoryCount: 1337,
-    name: "Cencera Prime"
-  };
+  // Smart Contract ABI definitions for SSI
+  const ABI = [
+    "function getAgentsByOwner(address _owner) external view returns (uint256[])",
+    "function getAgent(uint256 _agentId) view returns (tuple(uint256 id, address owner, uint96 innovationScore, string memoryHash))",
+    "function createAgent(string calldata _initialMemoryHash) external returns (uint256)"
+  ];
 
   useEffect(() => {
     checkConnection();
@@ -32,7 +32,7 @@ export default function Home() {
         const accounts = await provider.listAccounts();
         if (accounts.length > 0) {
           setWalletAddress(accounts[0].address);
-          fetchAgentData(1);
+          fetchAgentData(accounts[0].address);
         }
       } catch (error) {
         console.error("Connection check failed", error);
@@ -46,8 +46,9 @@ export default function Home() {
         const provider = new ethers.BrowserProvider(window.ethereum);
         await provider.send("eth_requestAccounts", []);
         const signer = await provider.getSigner();
-        setWalletAddress(await signer.getAddress());
-        fetchAgentData(1);
+        const address = await signer.getAddress();
+        setWalletAddress(address);
+        fetchAgentData(address);
       } catch (error) {
         console.error("Connection failed", error);
         alert("Failed to connect wallet.");
@@ -62,13 +63,53 @@ export default function Home() {
     setAgent(null);
   };
 
-  const fetchAgentData = async (agentId) => {
+  const fetchAgentData = async (address) => {
     setLoading(true);
-    // Simulating blockchain fetch
-    setTimeout(() => {
-      setAgent(MOCK_AGENT);
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
+
+      const agentIds = await contract.getAgentsByOwner(address);
+      if (agentIds.length > 0) {
+        // Display the first agent owned by this wallet
+        const agentId = agentIds[0];
+        const agentData = await contract.getAgent(agentId);
+
+        setAgent({
+          id: agentData.id.toString(),
+          owner: agentData.owner,
+          innovationScore: agentData.innovationScore.toString(),
+          memoryCount: agentData.innovationScore.toString(), // Approximating memory count by score
+          name: "Cencera Prime"
+        });
+      } else {
+        setAgent(null);
+      }
+    } catch (error) {
+      console.error("Failed to fetch agent from blockchain:", error);
+      setAgent(null);
+    } finally {
       setLoading(false);
-    }, 800);
+    }
+  };
+
+  const initializeAgent = async () => {
+    if (!walletAddress) return;
+    setLoading(true);
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+
+      const tx = await contract.createAgent("Genesis");
+      await tx.wait();
+
+      await fetchAgentData(walletAddress);
+    } catch (error) {
+      console.error("Failed to initialize agent:", error);
+      alert("Transaction failed or was rejected.");
+      setLoading(false);
+    }
   };
 
   const handleSendMessage = async (message) => {
@@ -180,6 +221,15 @@ export default function Home() {
                   <span className="bnb-icon">❖</span> BNB Testnet
                 </div>
               </div>
+            </div>
+          ) : walletAddress ? (
+            <div className="empty-state">
+              <div className="lock-icon">🧬</div>
+              <p>No Agent found for this wallet.</p>
+              <button onClick={initializeAgent} className="connect-btn" style={{ marginTop: '20px' }} disabled={loading}>
+                <span>{loading ? "PROCESSING TX..." : "INITIALIZE AGENT"}</span>
+                <div className="btn-glow"></div>
+              </button>
             </div>
           ) : (
             <div className="empty-state">

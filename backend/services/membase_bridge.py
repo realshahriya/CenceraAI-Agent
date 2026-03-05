@@ -14,9 +14,17 @@ async def upload_memory():
 
         data = json.loads(input_data)
         
-        # Configure Membase
-        # Defaulting to "default" account as per docs example
-        memory = BufferedMemory(membase_account="default", auto_upload_to_hub=True)
+        # Configure Membase with provided JWT
+        jwt_token = data.get('jwt')
+        
+        # We assume the SDK accepts a 'jwt' parameter for authentication based on common 
+        # python decentralized memory SDK patterns. If it uses a different param like 'api_key', 
+        # the user will need to adjust this depending on the membase package's __init__.
+        memory = BufferedMemory(
+            membase_account="default", 
+            auto_upload_to_hub=True,
+            jwt=jwt_token
+        )
 
         # Create Message Object
         msg = Message(

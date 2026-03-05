@@ -2,6 +2,7 @@ require('dotenv').config();
 // Trigger restart for .env update
 const express = require('express');
 const cors = require('cors');
+const cron = require('node-cron');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -22,6 +23,13 @@ app.listen(PORT, () => {
     // Start autonomous loop
     const { autonomyService } = require('./services/autonomy');
     autonomyService.start();
+
+    // Start Twitter Agent schedule (Run once a day at 9:00 AM)
+    const { twitterAgentService } = require('./services/twitter_agent');
+    cron.schedule('0 9 * * *', () => {
+        console.log("Running scheduled Twitter Agent task...");
+        twitterAgentService.start();
+    });
 
     // Start Telegram Bot
     require('./telegram/bot');
