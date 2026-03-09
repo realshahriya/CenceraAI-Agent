@@ -3,6 +3,7 @@ const { memoryService } = require('../services/memory');
 const { llmService } = require('../services/llm');
 const { autonomyService } = require('../services/autonomy');
 const { blockchainService } = require('../services/blockchain');
+const { vaultService } = require('../services/vault');
 
 class TelegramService {
     constructor() {
@@ -24,6 +25,7 @@ class TelegramService {
                 { command: '/start', description: 'Initialize Neural Link' },
                 { command: '/status', description: 'View Agent Status & Innovation Score' },
                 { command: '/memory', description: 'Peek into Agent Memory' },
+                { command: '/wallet', description: 'Setup Safe Trading Wallet (No Keys Needed)' },
                 { command: '/clear', description: 'Reset Session Memory' },
                 { command: '/help', description: 'List Capabilities' }
             ]);
@@ -49,7 +51,10 @@ class TelegramService {
                             { text: '🧠 Read Memory', callback_data: 'action_memory' }
                         ],
                         [
-                            { text: '❓ Need Help?', callback_data: 'action_help' },
+                            { text: '🛡️ Safe Wallet', callback_data: 'action_wallet' },
+                            { text: '❓ Need Help?', callback_data: 'action_help' }
+                        ],
+                        [
                             { text: '🔄 Clear Session', callback_data: 'action_clear' }
                         ]
                     ]
@@ -80,6 +85,8 @@ class TelegramService {
                     await this.handleClearRequest(chatId);
                 } else if (data === 'action_help') {
                     this.sendHelpMenu(chatId);
+                } else if (data === 'action_wallet') {
+                    await this.handleWalletRequest(chatId);
                 }
             } catch (error) {
                 console.error("Callback Query Error:", error);
@@ -96,6 +103,10 @@ class TelegramService {
 
         this.bot.onText(/\/clear/, async (msg) => {
             await this.handleClearRequest(msg.chat.id);
+        });
+
+        this.bot.onText(/\/wallet/, async (msg) => {
+            await this.handleWalletRequest(msg.chat.id);
         });
 
         this.bot.on('message', async (msg) => {
@@ -212,6 +223,27 @@ class TelegramService {
     async handleClearRequest(chatId) {
         await memoryService.updateMemory(chatId, "SYSTEM", "MEMORY_RESET_BY_USER");
         this.bot.sendMessage(chatId, "`[SYSTEM] Short-term memory buffer flushed.`", { parse_mode: 'Markdown' });
+    }
+
+    async handleWalletRequest(chatId) {
+        await this.bot.sendChatAction(chatId, 'typing');
+        const info = vaultService.getVaultInstructions();
+
+        const walletMsg =
+            `*🛡️ Cencera Safe Wallet System*\n\n` +
+            `I can act on your behalf on the BNB Chain *without ever knowing your private key*.\n\n` +
+            `*Bot Identity:* \`${info.botPublicAddress}\`\n\n` +
+            `*How to setup:* \n` +
+            `1. Open our [Web Dashboard](http://localhost:3000)\n` +
+            `2. Connect your wallet (MetaMask).\n` +
+            `3. Click on *'Authorize Agent'*\n` +
+            `4. Paste the Bot Identity above.\n\n` +
+            `*Benefits:*\n` +
+            `- You keep your keys. 🛡️\n` +
+            `- You can revoke access anytime. 🛑\n` +
+            `- Bot can only trade on whitelisted DEXs. 📈`;
+
+        this.bot.sendMessage(chatId, walletMsg, { parse_mode: 'Markdown' });
     }
 
     formatMessageForTelegram(text) {

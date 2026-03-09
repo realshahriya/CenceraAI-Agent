@@ -71,6 +71,36 @@ class LLMService {
             return "I am having trouble connecting to the neural grid. Data link severed.";
         }
     }
+
+    /**
+     * ASI-1 Mini Reasoning for Fetch.ai Hackathon integration
+     */
+    async generateASIReasoning(prompt) {
+        const apiKey = process.env.ASI_API_KEY;
+        if (!apiKey) {
+            console.warn("ASI_API_KEY not set. Using ChainGPT fallback for reasoning.");
+            return this.generateResponse(prompt, "AUTONOMOUS_REASONING_MODE");
+        }
+
+        try {
+            const axios = require('axios');
+            const response = await axios.post('https://api.asi1.ai/v1/chat/completions', {
+                model: "asi-1-mini",
+                messages: [{ role: "user", content: prompt }],
+                response_format: { type: "json_object" }
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            return response.data.choices[0].message.content;
+        } catch (error) {
+            console.error("ASI-1 Mini API Error:", error.response?.data || error.message);
+            return JSON.stringify({ should_act: false, reason: "Neural link timeout" });
+        }
+    }
 }
 
 module.exports = { llmService: new LLMService() };

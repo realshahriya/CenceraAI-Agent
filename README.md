@@ -2,18 +2,22 @@
 
 **Decentralized Memory • Cross-Platform Interoperability • Sovereign Identity**
 
-Built for the **BNB Chain AI Hackathon**.
+![tag:innovationlab](https://img.shields.io/badge/innovationlab-3D8BD3)
+![tag:ASI](https://img.shields.io/badge/asi-3D8BD3)
+
+Built for the **Fetch.ai: Unlocking Agent Intelligence on BNB Chain** hackathon.
 
 ![Status](https://img.shields.io/badge/Status-Prototype-green) ![Network](https://img.shields.io/badge/Network-BNB_Testnet-yellow)
 
 ## 🏆 The Challenge Solution
 
-CenceraAI is a **Sovereign AI Entity** that lives on the blockchain, not on a centralized server. It meets the hackathon challenge by implementing:
+CenceraAI is a **Sovereign AI Entity** that leverages the **Fetch.ai ecosystem** and **ASI-1 Mini LLM** to perform autonomous on-chain actions.
 
-1. **On-Chain Identity (Sovereign)**: The agent's existence, owner, and "Innovation Score" are secured by a Smart Contract on BNB Chain. It cannot be deleted by a single entity.
-2. **Decentralized Memory (Membase)**: The agent remembers every interaction. In this prototype, we simulate the **Unibase Membase** architecture, ensuring data is user-owned and persistent.
-3. **Cross-Platform Interoperability**: One Agent, Everywhere. Talk to it on **Telegram**, and it remembers you on the **Web Dashboard**. The memory layer unifies the experience.
-4. **Autonomous Evolution (BitAgent)**: The agent runs a self-reflection loop (Cron Job) to analyze memories, evolve its personality, and update its on-chain state without user input.
+1. **Autonomous Reasoning (ASI-1 Mini)**: The agent uses Fetch.ai's Web3-native LLM to decide when to perform on-chain actions (Swaps, Deployments, Memory Updates) based on its persistent decentralized memories.
+2. **On-Chain Identity (BNB Chain)**: The agent's state, "Innovation Score", and identity are secured via Smart Contracts on BNB Chain.
+3. **uAgents Integration**: Registered on **Agentverse** via a specialized bridge, allowing it to communicate with other agents in the Fetch.ai Network.
+4. **Decentralized Memory (Unibase Membase)**: Every interaction is hashed and stored in a decentralized memory layer, ensuring the agent "never forgets" across platforms.
+5. **Cross-Platform Interoperability**: Talk to the same agent on **Telegram** or via the **Web Dashboard**.
 
 ---
 

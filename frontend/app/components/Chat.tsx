@@ -1,11 +1,22 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
-export default function Chat({ agentId, walletAddress, onSendMessage }) {
-  const [messages, setMessages] = useState([]);
+interface ChatProps {
+  agentId?: string;
+  walletAddress?: string;
+  onSendMessage: (message: string) => Promise<string>;
+}
+
+interface Message {
+  role: 'user' | 'agent' | 'system';
+  content: string;
+}
+
+export default function Chat({ agentId, walletAddress, onSendMessage }: ChatProps) {
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const messagesEndRef = useRef(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -18,7 +29,7 @@ export default function Chat({ agentId, walletAddress, onSendMessage }) {
     scrollToBottom();
   }, [messages, loading]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || !agentId || !walletAddress) return;
 

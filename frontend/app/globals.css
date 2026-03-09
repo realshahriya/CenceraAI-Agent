@@ -1,17 +1,19 @@
 :root {
-  --background: #050505;
-  --foreground: #e0e0e0;
+  --background: #020205;
+  --foreground: #f0f0f5;
 
-  /* Cyberpunk / High-Tech Palette */
+  /* Premium Cyberpunk Palette */
   --neon-cyan: #00f3ff;
   --neon-purple: #bc13fe;
   --neon-green: #0aff68;
+  --neon-pink: #ff007a;
 
-  --glass-bg: rgba(20, 20, 20, 0.65);
-  --glass-border: 1px solid rgba(255, 255, 255, 0.08);
-  --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --glass-bg: rgba(10, 10, 15, 0.7);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.05);
+  --card-shadow: 0 12px 48px 0 rgba(0, 0, 0, 0.5);
 
-  --font-mono: 'Courier New', Courier, monospace;
+  --font-main: 'Outfit', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 }
 
 body {
