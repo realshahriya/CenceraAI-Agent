@@ -17,11 +17,6 @@ export default function Chat({ agentId, walletAddress, onSendMessage }: ChatProp
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -29,23 +24,25 @@ export default function Chat({ agentId, walletAddress, onSendMessage }: ChatProp
     scrollToBottom();
   }, [messages, loading]);
 
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || !agentId || !walletAddress) return;
+    if (!input.trim() || !walletAddress) return;
 
     const userMessage = input;
     setInput('');
     setLoading(true);
 
-    // Add user message to UI immediately
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
 
     try {
       const response = await onSendMessage(userMessage);
       setMessages(prev => [...prev, { role: 'agent', content: response }]);
     } catch (error) {
-      console.error("Chat error:", error);
-      setMessages(prev => [...prev, { role: 'system', content: "Error: Neural Link Fragmented. Failed to get response." }]);
+      setMessages(prev => [...prev, { role: 'system', content: "CRITICAL ERROR: NEURAL LINK FRAGMENTED. UNABLE TO RETRIEVE COGNITIVE RESPONSE." }]);
     } finally {
       setLoading(false);
     }
@@ -54,236 +51,208 @@ export default function Chat({ agentId, walletAddress, onSendMessage }: ChatProp
   if (!mounted) return null;
 
   return (
-    <div className="chat-interface">
-      <div className="messages-area">
+    <div className="chat-container">
+      <div className="messages-viewport">
         {messages.length === 0 ? (
-          <div className="empty-state">
-            <div className="icon">🧠</div>
-            <h3>CENCERA SYSTEM STANDBY</h3>
-            <p>Initiate cognitive synchronization sequence.</p>
+          <div className="onboarding">
+            <div className="onboarding-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z" />
+                <path d="M12 6v6l4 2" />
+              </svg>
+            </div>
+            <h3>NEURAL SYNC PENDING</h3>
+            <p>Initiate conversation to populate cognitive buffer.</p>
           </div>
         ) : (
           messages.map((msg, idx) => (
-            <div key={idx} className={`message-row ${msg.role}`}>
-              <div className="bubble">
-                {msg.role === 'agent' && <span className="sender-label">CENCERA AI</span>}
+            <div key={idx} className={`msg-block ${msg.role}`}>
+              <div className="msg-bubble">
+                {msg.role === 'agent' && <div className="bot-tag">CENCERA.PROTOCUL</div>}
                 {msg.content}
               </div>
             </div>
           ))
         )}
-
         {loading && (
-          <div className="message-row agent">
-            <div className="bubble loading-bubble">
-              <span className="dot"></span>
-              <span className="dot"></span>
-              <span className="dot"></span>
+          <div className="msg-block agent">
+            <div className="msg-bubble loading">
+              <span className="typing-dot"></span>
+              <span className="typing-dot"></span>
+              <span className="typing-dot"></span>
             </div>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="input-wrapper">
-        <form onSubmit={handleSubmit} className="input-box">
+      <div className="input-section">
+        <form onSubmit={handleSubmit} className="input-form">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={walletAddress ? "Enter command protocol..." : "Neural link required"}
+            placeholder={walletAddress ? "SEND COMMAND PROTOCOL..." : "NEURAL LINK REQUIRED"}
             disabled={!walletAddress || loading}
           />
           <button type="submit" disabled={!walletAddress || loading || !input.trim()}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
             </svg>
           </button>
         </form>
       </div>
 
       <style jsx>{`
-                .chat-interface {
-                    display: flex;
-                    flex-direction: column;
-                    height: 100%;
-                    position: relative;
-                }
-                
-                .messages-area {
-                    flex: 1;
-                    overflow-y: auto;
-                    padding: 24px;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 18px;
-                }
+        .chat-container {
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.2);
+        }
 
-                .message-row {
-                    display: flex;
-                    width: 100%;
-                }
-                
-                .message-row.user {
-                    justify-content: flex-end;
-                }
-                
-                .message-row.agent {
-                    justify-content: flex-start;
-                }
+        .messages-viewport {
+          flex: 1;
+          overflow-y: auto;
+          padding: 30px;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
 
-                .sender-label {
-                    display: block;
-                    font-size: 0.6rem;
-                    color: var(--neon-cyan);
-                    margin-bottom: 4px;
-                    letter-spacing: 1px;
-                    font-weight: 700;
-                }
+        .msg-block {
+          display: flex;
+          width: 100%;
+        }
 
-                .bubble {
-                    max-width: 80%;
-                    padding: 14px 20px;
-                    border-radius: 12px;
-                    font-size: 0.95rem;
-                    line-height: 1.5;
-                    position: relative;
-                    word-wrap: break-word;
-                    font-family: var(--font-mono);
-                }
+        .msg-block.user { justify-content: flex-end; }
+        .msg-block.agent { justify-content: flex-start; }
 
-                .message-row.user .bubble {
-                    background: rgba(0, 243, 255, 0.1);
-                    color: var(--neon-cyan);
-                    border: 1px solid rgba(0, 243, 255, 0.3);
-                    border-bottom-right-radius: 2px;
-                    box-shadow: 0 0 15px rgba(0, 243, 255, 0.05);
-                }
+        .msg-bubble {
+          max-width: 85%;
+          padding: 16px 20px;
+          border-radius: 12px;
+          font-size: 0.95rem;
+          line-height: 1.5;
+          word-break: break-word;
+          position: relative;
+        }
 
-                .message-row.agent .bubble {
-                    background: rgba(0, 0, 0, 0.6);
-                    color: #fff;
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-bottom-left-radius: 2px;
-                }
-                
-                .message-row.system .bubble {
-                    background: rgba(255, 0, 0, 0.1);
-                    color: #ff4444;
-                    border: 1px solid rgba(255, 0, 0, 0.2);
-                    font-size: 0.85rem;
-                }
+        .user .msg-bubble {
+          background: var(--neon-cyan);
+          color: #000;
+          font-weight: 600;
+          border-bottom-right-radius: 2px;
+          box-shadow: 0 4px 15px rgba(0, 243, 255, 0.2);
+        }
 
-                .empty-state {
-                    height: 100%;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    color: #555;
-                    text-align: center;
-                }
-                .empty-state .icon {
-                    font-size: 3rem;
-                    margin-bottom: 15px;
-                    opacity: 0.3;
-                    filter: grayscale(100%);
-                }
-                .empty-state h3 {
-                    margin: 0 0 5px 0;
-                    color: #666;
-                    text-transform: uppercase;
-                    letter-spacing: 2px;
-                    font-size: 0.9rem;
-                    font-family: var(--font-mono);
-                }
+        .agent .msg-bubble {
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          color: #e0e0e0;
+          border-bottom-left-radius: 2px;
+        }
 
-                /* Input Area */
-                .input-wrapper {
-                    padding: 20px;
-                    background: rgba(0,0,0,0.4);
-                    border-top: 1px solid rgba(255,255,255,0.08);
-                }
+        .system .msg-bubble {
+          background: rgba(255, 59, 105, 0.05);
+          border: 1px solid rgba(255, 59, 105, 0.2);
+          color: var(--neon-pink);
+          font-family: var(--font-mono);
+          font-size: 0.8rem;
+          width: 100%;
+          text-align: center;
+        }
 
-                .input-box {
-                    display: flex;
-                    background: rgba(0, 0, 0, 0.6);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 4px;
-                    padding: 5px;
-                    transition: all 0.2s;
-                }
+        .bot-tag {
+          font-family: var(--font-mono);
+          font-size: 0.6rem;
+          font-weight: 800;
+          color: var(--neon-purple);
+          margin-bottom: 6px;
+          letter-spacing: 1px;
+        }
 
-                .input-box:focus-within {
-                    border-color: var(--neon-cyan);
-                    box-shadow: 0 0 15px rgba(0, 243, 255, 0.1);
-                }
+        .onboarding {
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          opacity: 0.4;
+        }
 
-                input {
-                    flex: 1;
-                    background: transparent;
-                    border: none;
-                    color: white;
-                    padding: 12px 20px;
-                    font-size: 1rem;
-                    outline: none;
-                    font-family: var(--font-mono);
-                }
+        .onboarding-icon { width: 40px; height: 40px; margin-bottom: 16px; color: #888; }
+        .onboarding h3 { font-family: var(--font-mono); font-size: 0.8rem; letter-spacing: 2px; margin-bottom: 8px; }
+        .onboarding p { font-size: 0.8rem; }
 
-                input::placeholder {
-                    color: #444;
-                    font-style: italic;
-                }
+        .input-section {
+          padding: 24px;
+          border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
 
-                button {
-                    background: rgba(0, 243, 255, 0.1);
-                    border: 1px solid rgba(0, 243, 255, 0.2);
-                    width: 45px;
-                    height: 45px;
-                    border-radius: 2px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    cursor: pointer;
-                    color: var(--neon-cyan);
-                    transition: all 0.2s;
-                }
+        .input-form {
+          display: flex;
+          gap: 12px;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          padding: 8px;
+          border-radius: 12px;
+          transition: 0.3s;
+        }
 
-                button:hover:not(:disabled) {
-                    background: rgba(0, 243, 255, 0.2);
-                    box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
-                }
+        .input-form:focus-within {
+          border-color: var(--neon-cyan);
+          background: rgba(255, 255, 255, 0.05);
+        }
 
-                button:disabled {
-                    background: transparent;
-                    border-color: #333;
-                    color: #444;
-                    cursor: not-allowed;
-                }
-                
-                button svg {
-                    width: 20px;
-                    height: 20px;
-                }
+        input {
+          flex: 1;
+          background: transparent;
+          border: none;
+          color: #fff;
+          padding: 8px 16px;
+          outline: none;
+          font-family: var(--font-main);
+          font-size: 0.95rem;
+        }
 
-                /* Loading Dots Animation */
-                .loading-bubble {
-                    display: flex;
-                    gap: 6px;
-                    padding: 15px 20px;
-                }
-                .dot {
-                    width: 4px;
-                    height: 4px;
-                    background: var(--neon-cyan);
-                    border-radius: 50%;
-                    animation: pulse 1s infinite ease-in-out alternate;
-                }
-                .dot:nth-child(1) { animation-delay: 0s; }
-                .dot:nth-child(2) { animation-delay: 0.2s; }
-                .dot:nth-child(3) { animation-delay: 0.4s; }
-            `}</style>
+        button {
+          width: 42px;
+          height: 42px;
+          border-radius: 8px;
+          background: rgba(0, 243, 255, 0.1);
+          border: 1px solid rgba(0, 243, 255, 0.2);
+          color: var(--neon-cyan);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: 0.3s;
+        }
+
+        button:hover:not(:disabled) {
+          background: var(--neon-cyan);
+          color: #000;
+        }
+
+        button:disabled { opacity: 0.2; cursor: not-allowed; }
+        button svg { width: 20px; height: 20px; }
+
+        .loading { display: flex; gap: 4px; padding: 12px 20px !important; }
+        .typing-dot { width: 4px; height: 4px; background: var(--neon-cyan); border-radius: 50%; animation: blink 1.4s infinite both; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes blink {
+          0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+          40% { opacity: 1; transform: scale(1.2); }
+        }
+
+        /* Scrollbar */
+        .messages-viewport::-webkit-scrollbar { width: 4px; }
+        .messages-viewport::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 10px; }
+      `}</style>
     </div>
   );
 }
