@@ -8,11 +8,35 @@ class MembaseService {
     }
 
     async uploadMemory(memoryData) {
-        console.log(`[Membase] Uploading ${memoryData.type} to Unibase Decentralized Storage...`);
+        console.log(`[Membase] Uploading ${memoryData.type} to Unibase Decentralized Storage using Web3 Wallet Auth...`);
 
         return new Promise((resolve, reject) => {
-            // Spawn the python process
-            const pythonProcess = spawn('python', [this.bridgeScript]);
+            // Prepare Unibase Environment Variables from existing Private Key
+            let privateKey = process.env.PRIVATE_KEY || "";
+            if (privateKey && !privateKey.startsWith("0x")) {
+                privateKey = "0x" + privateKey;
+            }
+            
+            let membaseAccount = "0x0000000000000000000000000000000000000000";
+            if (privateKey) {
+                try {
+                    const { ethers } = require('ethers');
+                    const wallet = new ethers.Wallet(privateKey);
+                    membaseAccount = wallet.address;
+                } catch (e) {
+                    console.error("[Membase] Warning: Failed to derive wallet address from PRIVATE_KEY:", e.message);
+                }
+            }
+
+            const pythonEnv = {
+                ...process.env,
+                MEMBASE_ID: "cencera-agent",
+                MEMBASE_ACCOUNT: membaseAccount,
+                MEMBASE_SECRET_KEY: privateKey
+            };
+
+            // Spawn the python process with the injected Web3 environment
+            const pythonProcess = spawn('python', [this.bridgeScript], { env: pythonEnv });
 
             let resultData = '';
             let errorData = '';
@@ -52,14 +76,8 @@ class MembaseService {
                 }
             });
 
-            // Add the JWT token to the memory payload payload
-            const payload = {
-                ...memoryData,
-                jwt: process.env.UNIBASE_JWT || process.env.PINATA_JWT || ""
-            };
-
             // Send the memory payload to the Python script via stdin
-            pythonProcess.stdin.write(JSON.stringify(payload));
+            pythonProcess.stdin.write(JSON.stringify(memoryData));
             pythonProcess.stdin.end();
         });
     }

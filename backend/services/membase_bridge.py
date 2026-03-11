@@ -14,16 +14,12 @@ async def upload_memory():
 
         data = json.loads(input_data)
         
-        # Configure Membase with provided JWT
-        jwt_token = data.get('jwt')
-        
-        # We assume the SDK accepts a 'jwt' parameter for authentication based on common 
-        # python decentralized memory SDK patterns. If it uses a different param like 'api_key', 
-        # the user will need to adjust this depending on the membase package's __init__.
+        # Configure Membase with Wallet Env Vars
+        # The SDK automatically picks up MEMBASE_ID, MEMBASE_ACCOUNT, and MEMBASE_SECRET_KEY 
+        # from the OS environment injected by Node.js
         memory = BufferedMemory(
             membase_account="default", 
-            auto_upload_to_hub=True,
-            jwt=jwt_token
+            auto_upload_to_hub=True
         )
 
         # Create Message Object

@@ -1,61 +1,66 @@
-const { MultiMemory } = require("@unibase/membase-js/memory/multi_memory") || require("membase-js"); // Need to see exact export pattern, assuming standard or fallback.
-const { Message } = require("@unibase/membase-js/memory/message") || require("membase-js");
+const { membaseService } = require('./membase');
 
 class MemoryService {
     constructor() {
-        // Initialize Membase MultiMemory
-        // MEMBASE_ID, MEMBASE_ACCOUNT, MEMBASE_SECRET_KEY should be set in environment
-        this.mm = new MultiMemory({
-            membase_account: process.env.MEMBASE_ACCOUNT || "default",
-            auto_upload_to_hub: true,
-            preload_from_hub: true
-        });
+        // Simple short-term memory store (agentId -> array of messages)
+        // Keeps the immediate conversation context fast and cheap.
+        this.cache = new Map();
     }
 
     async getMemory(agentId) {
-        // Note: SDK structure might vary, adapting basic concept from docs:
-        // We might not have a direct 'get stringified memory' yet in the snippet,
-        // so we'll fetch the conversation array and format it.
-        try {
-            // Depending on exact JS SDK, fetching might be internal or async
-            // Fallback for now if there isn't a straight string getter:
-            return `Connected to Membase for Agent: ${agentId}`;
-        } catch (err) {
-            console.error("Membase get error:", err);
-            return "You are an immutable AI agent.";
+        if (!this.cache.has(agentId)) {
+            // In a production system, you might fetch recent history from a DB here.
+            this.cache.set(agentId, []);
         }
+        
+        const history = this.cache.get(agentId);
+        
+        if (history.length === 0) {
+            return "No previous memories.";
+        }
+
+        // Format history nicely for the LLM
+        return history.map(msg => msg).join('\n');
     }
 
     async updateMemory(agentId, userMessage, aiResponse) {
-        try {
-            // Add user message
-            const userMsg = new Message({
-                name: "user",
-                content: userMessage,
-                role: "user",
-                metadata: ""
-            });
-            await this.mm.add(userMsg, agentId); // using agentId as conversation_id
+        if (!this.cache.has(agentId)) {
+            this.cache.set(agentId, []);
+        }
 
-            // Add AI response
-            const aiMsg = new Message({
-                name: `agent-${agentId}`,
-                content: aiResponse,
-                role: "assistant",
-                metadata: ""
+        // 1. Update Short-Term Cache
+        const history = this.cache.get(agentId);
+        history.push(`User: ${userMessage}`);
+        history.push(`Agent: ${aiResponse}`);
+
+        // Keep cache manageable (e.g., last 20 messages)
+        if (history.length > 40) {
+            this.cache.set(agentId, history.slice(history.length - 40));
+        }
+
+        // 2. Persist to Unibase Membase
+        try {
+            console.log(`[MemoryService] Archiving conversation to Membase for Agent ${agentId}...`);
+            // We combine the interaction into one payload for the bridge
+            const payload = {
+                agentId: agentId,
+                timestamp: Date.now(),
+                type: "CONVERSATION_HISTORY",
+                content: `User: ${userMessage}\nAgent: ${aiResponse}`
+            };
+
+            // Async trigger membase upload, don't await so we don't block user response
+            membaseService.uploadMemory(payload).catch(err => {
+                console.error(`[Membase] Background upload failed: ${err.message}`);
             });
-            await this.mm.add(aiMsg, agentId);
-            
-            console.log(`Updated Membase for Agent ${agentId} on Hub`);
+
         } catch (err) {
-            console.error("Membase update error:", err);
+            console.error("[MemoryService] Membase update error:", err);
         }
     }
 
     async getKnownAgents() {
-        // Retrieving all known agents from Membase might require additional SDK methods
-        // Returning empty array as placeholder.
-        return [];
+        return Array.from(this.cache.keys());
     }
 }
 

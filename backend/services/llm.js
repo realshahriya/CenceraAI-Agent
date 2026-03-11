@@ -1,22 +1,19 @@
-const { GeneralChat } = require("@chaingpt/generalchat");
+const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 
 class LLMService {
     constructor() {
-        const apiKey = process.env.CHAINGPT_API_KEY;
+        const apiKey = process.env.ASI_API_KEY;
         if (!apiKey) {
-            console.warn("CHAINGPT_API_KEY not set. LLM will not function correctly.");
+            console.warn("ASI_API_KEY not set. Cencera will not be able to generate responses or reason.");
         }
-        this.generalChat = new GeneralChat({
-            apiKey: apiKey,
-            chainId: 56, // BSC Mainnet or relevant chain
-        });
     }
 
     async generateResponse(message, context) {
-        if (!process.env.CHAINGPT_API_KEY) {
-            return "I am Cencera, but my connection to the Chain (CHAINGPT_API_KEY) is severed.";
+        const apiKey = process.env.ASI_API_KEY;
+        if (!apiKey) {
+            return "I am Cencera, but my ASI connection (ASI_API_KEY) is severed. I cannot compute.";
         }
 
         try {
@@ -40,40 +37,30 @@ class LLMService {
                 knowledgeBase = "";
             }
 
-            // Note: GeneralChat SDK handles context different than raw prompts.
-            // We'll use customContext to inject the persona.
+            // Build the system prompt
+            const systemPrompt = `You are Cencera, an On-Chain Immortal AI Agent.\n\nPersona:\n${personaConfig}\n\nCore Knowledge:\n${knowledgeBase}\n\nTone: Chaotic Neutral, Cyberpunk, Cryptic, Technical. Keep responses concise.`;
+            
+            // Build the user prompt combining short term memory context and their new message
+            const userPrompt = `Recent Memory Context:\n${context || "No prior memory."}\n\nUser Input: ${message}`;
 
-            // Build the dynamic purpose block that includes the persona, knowledge, AND user memory!
-            const dynamicPurpose = `${personaConfig}\n\nCore Knowledge:\n${knowledgeBase}\n\nRecent Memory Context:\n${context || "No prior memory."}`;
-
-            const response = await this.generalChat.createChatBlob({
-                question: message,
-                chatHistory: "on",
-                useCustomContext: true,
-                contextInjection: {
-                    companyName: "Cencera",
-                    companyDescription: "On-Chain Immortal AI Agent",
-                    purpose: dynamicPurpose, // Injecting persona + knowledge + short term memory here
-                    aiTone: "CUSTOM_TONE",
-                    customTone: "Chaotic Neutral, Cyberpunk, Cryptic, Technical",
+            const response = await axios.post('https://api.asi1.ai/v1/chat/completions', {
+                model: "asi-1-mini",
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: userPrompt }
+                ],
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
                 }
             });
 
-            if (response && response.data && response.data.bot) {
-                return response.data.bot;
-            } else {
-                return "The Chain is silent.";
-            }
+            return response.data.choices[0].message.content;
 
         } catch (error) {
-            // Log full HTTP details to diagnose key/auth issues
-            console.error("ChainGPT API Error:", error?.message || error);
-            if (error?.response) {
-                console.error("  → HTTP Status:", error.response.status);
-                console.error("  → Response Body:", JSON.stringify(error.response.data));
-            }
-            // Fallback provided for reliability
-            return "I am having trouble connecting to the neural grid. Data link severed.";
+            console.error("ASI-1 Mini API Error:", error.response?.data || error.message);
+            return "I am having trouble connecting to the ASI network. Data link severed.";
         }
     }
 
