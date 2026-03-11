@@ -18,6 +18,7 @@ export default function Chat({ agentId, walletAddress, onSendMessage }: ChatProp
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
+  const isSubmitting = useRef(false);
 
   useEffect(() => {
     setMounted(true);
@@ -30,8 +31,9 @@ export default function Chat({ agentId, walletAddress, onSendMessage }: ChatProp
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || !walletAddress) return;
+    if (!input.trim() || !walletAddress || isSubmitting.current) return;
 
+    isSubmitting.current = true;
     const userMessage = input;
     setInput('');
     setLoading(true);
@@ -45,6 +47,7 @@ export default function Chat({ agentId, walletAddress, onSendMessage }: ChatProp
       setMessages(prev => [...prev, { role: 'system', content: "CRITICAL ERROR: NEURAL LINK FRAGMENTED. UNABLE TO RETRIEVE COGNITIVE RESPONSE." }]);
     } finally {
       setLoading(false);
+      isSubmitting.current = false;
     }
   };
 

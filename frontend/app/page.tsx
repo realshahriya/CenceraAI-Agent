@@ -33,10 +33,13 @@ export default function Home() {
   const [modalType, setModalType] = useState<'identity' | 'auth' | 'success' | 'wallet_select' | null>(null);
   const [modalData, setModalData] = useState<ModalData | null>(null);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
+  const [bootLoading, setBootLoading] = useState<boolean>(true);
+  const [bootFading, setBootFading] = useState<boolean>(false);
 
   // Constants
   const BACKEND_URL = 'http://localhost:3001';
-  const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0xCA10569a993154c051E0F4306172743375E63fC1';
+  const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0xDA10C30F6c2c0B6E18D6489209Fb7Ec0FCDeF100';
+  const BSC_TESTNET_ID = '0x61'; // 97
 
   // Smart Contract ABI definitions
   const ABI = [
@@ -45,12 +48,19 @@ export default function Home() {
     "function createAgent(string calldata _initialMemoryHash) external returns (uint256)",
     "function registerIdentity(string calldata _did, string calldata _personalDataHash) external",
     "function authorizeAgent(address _agentAddress) external",
-    "function identities(address) view returns (tuple(string did, string personalDataHash, bool isActive))",
+    "function identities(address) view returns (string did, string personalDataHash, bool isActive)",
     "function authorizedAgents(address, address) view returns (bool)"
   ];
 
   // The Bot's Public Address
   const BOT_PUBLIC_ADDRESS = '0xCA10569a993154c051E0F4306172743375E63fC1';
+
+  useEffect(() => {
+    // Boot overlay dismiss
+    const fadeTimer = setTimeout(() => setBootFading(true), 2000);
+    const hideTimer = setTimeout(() => setBootLoading(false), 2600);
+    return () => { clearTimeout(fadeTimer); clearTimeout(hideTimer); };
+  }, []);
 
   useEffect(() => {
     checkConnection();
@@ -99,9 +109,38 @@ export default function Home() {
     }
   };
 
+  const switchNetwork = async () => {
+    if (typeof window.ethereum !== 'undefined') {
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: BSC_TESTNET_ID }],
+        });
+      } catch (switchError: any) {
+        if (switchError.code === 4902) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId: BSC_TESTNET_ID,
+                chainName: 'Binance Smart Chain Testnet',
+                nativeCurrency: { name: 'tBNB', symbol: 'tBNB', decimals: 18 },
+                rpcUrls: ['https://data-seed-prebsc-1-s1.binance.org:8545'],
+                blockExplorerUrls: ['https://testnet.bscscan.com']
+              }],
+            });
+          } catch (addError) {
+            console.error("Failed to add network", addError);
+          }
+        }
+      }
+    }
+  };
+
   const connectWallet = async () => {
     if (typeof window.ethereum !== 'undefined') {
       try {
+        await switchNetwork();
         localStorage.removeItem('cencera_disconnected');
         const provider = new ethers.BrowserProvider(window.ethereum!);
         await provider.send("eth_requestAccounts", []);
@@ -166,8 +205,10 @@ export default function Home() {
       const tx = await contract.createAgent("Genesis Memory");
       await tx.wait();
       await fetchAgentData(walletAddress);
-    } catch (error) {
-      console.error("Init error:", error);
+    } catch (error: any) {
+      if (error?.code !== 'ACTION_REJECTED' && error?.info?.error?.code !== 4001) {
+        console.error("Init error:", error);
+      }
       setLoading(false);
     }
   };
@@ -184,7 +225,11 @@ export default function Home() {
       setModalData({ message: "Sovereign Identity registered! Your DID is now live on BNB Chain." });
       setModalType('success');
       await fetchAgentData(walletAddress);
-    } catch (error) { console.error(error); } finally { setLoading(false); }
+    } catch (error: any) {
+      if (error?.code !== 'ACTION_REJECTED' && error?.info?.error?.code !== 4001) {
+        console.error("Register identity error:", error);
+      }
+    } finally { setLoading(false); }
   };
 
   const authorizeAgentAction = async () => {
@@ -198,7 +243,11 @@ export default function Home() {
       setModalData({ message: "Autonomous Delegation Active! The bot can now protect your innovation." });
       setModalType('success');
       await fetchAgentData(walletAddress);
-    } catch (error) { console.error(error); } finally { setLoading(false); }
+    } catch (error: any) {
+      if (error?.code !== 'ACTION_REJECTED' && error?.info?.error?.code !== 4001) {
+        console.error("Authorize agent error:", error);
+      }
+    } finally { setLoading(false); }
   };
 
   const handleSendMessage = async (message: string): Promise<string> => {
@@ -209,190 +258,226 @@ export default function Home() {
   };
 
   return (
-    <main className="container">
-      {/* Dynamic Background Noise/Pulse */}
-      <div className="bg-vignette"></div>
-
-      <header className="nav">
-        <div className="logo">
-          <div className="logo-hex">
-            <svg viewBox="0 0 100 100" className="hex-svg">
-              <polygon points="50,1 95,25 95,75 50,99 5,75 5,25" />
-            </svg>
-            <span>C</span>
-          </div>
-          <div className="logo-text">
-            <h2>CENCERA AI</h2>
-            <span>NEURAL NETWORK • V0.1</span>
-          </div>
-        </div>
-
-        <div className="nav-center">
-          <div className="badge innovation">INNOVATION LAB</div>
-          <div className="badge asi">ASI-1 MINI</div>
-        </div>
-
-        <div className="nav-right">
-          {walletAddress ? (
-            <div className="wallet-pill" onClick={disconnectWallet}>
-              <div className="status-dot"></div>
-              {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-              <span className="tooltip">DISCONNECT</span>
+    <>
+      {/* Boot Loading Overlay — outside <main> so container opacity doesn't hide it */}
+      {bootLoading && (
+        <div
+          className={`boot-overlay ${bootFading ? 'boot-fading' : ''}`}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999, background: '#000',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column',
+            opacity: bootFading ? 0 : 1, transition: 'opacity 0.6s ease'
+          }}
+        >
+          <div className="boot-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', textAlign: 'center' }}>
+            <img
+              src="/logo.png"
+              alt="CENCERA AI"
+              className="boot-logo"
+              style={{ height: '80px', width: 'auto', objectFit: 'contain' }}
+            />
+            <div className="boot-title">CENCERA AI</div>
+            <div className="boot-subtitle">NEURAL NETWORK INITIALIZING</div>
+            <div className="boot-lines">
+              <div className="boot-line" style={{ animationDelay: '0.1s' }}>▸ Loading sovereign identity module...</div>
+              <div className="boot-line" style={{ animationDelay: '0.5s' }}>▸ Establishing BNB Chain link...</div>
+              <div className="boot-line" style={{ animationDelay: '0.9s' }}>▸ Syncing ASI-1 Mini cognitive core...</div>
+              <div className="boot-line" style={{ animationDelay: '1.3s' }}>▸ Neural grid online.</div>
             </div>
-          ) : (
-            <button className="connect-btn" onClick={() => setModalType('wallet_select')}>
-              CONNECT NEURAL LINK
-            </button>
-          )}
+            <div className="boot-bar-wrap">
+              <div className="boot-bar"></div>
+            </div>
+          </div>
         </div>
-      </header>
+      )}
 
-      <div className="grid">
-        {/* Left: Agent Core */}
-        <section className="panel agent-panel">
-          <div className="panel-label">IDENTITY MATRIX</div>
+      <main className="container" style={{ opacity: bootLoading ? 0 : 1, transition: 'opacity 0.6s ease 0.1s' }}>
+        {/* Dynamic Background Noise/Pulse */}
+        <div className="bg-vignette"></div>
 
-          <div className="agent-display">
-            {loading ? (
-              <div className="sync-overlay">
-                <div className="scanline"></div>
-                <p>SYNCING NEURAL WEIGHTS...</p>
-              </div>
-            ) : agent ? (
-              <>
-                <div className="agent-visual">
-                  <div className="cyber-circle">
-                    <div className="inner-ring"></div>
-                    <div className="core-glow"></div>
-                    <span className="asi-label">ASI</span>
-                  </div>
-                </div>
+        <header className="nav">
+          <div className="logo">
+            <img src="/logo.png" alt="CENCERA AI" className="logo-img" />
+            <div className="logo-text">
+              <h2>CENCERA AI</h2>
+              <span>NEURAL NETWORK • V0.1</span>
+            </div>
+          </div>
 
-                <div className="agent-meta">
-                  <div className="meta-row">
-                    <span className="m-label">DESIGNATION</span>
-                    <span className="m-value">{agent.name}</span>
-                  </div>
-                  <div className="meta-row">
-                    <span className="m-label">INNOVATION SCORE</span>
-                    <span className="m-value cyan">{agent.innovationScore}</span>
-                  </div>
-                  <div className="meta-row">
-                    <span className="m-label">AGENT ID</span>
-                    <span className="m-value">#{agent.id.padStart(4, '0')}</span>
-                  </div>
-                </div>
+          <div className="nav-center">
+            <div className="badge innovation">INNOVATION LAB</div>
+            <div className="badge asi">ASI-1 MINI</div>
+          </div>
 
-                <div className="agent-actions">
-                  <div className="permission-group">
-                    <span className="group-title">SECURITY PROTOCOLS</span>
-                    <div className="p-item">
-                      <span>D.I.D. IDENTITY</span>
-                      {agent.isIdentityRegistered ? (
-                        <span className="p-status active">VERIFIED</span>
-                      ) : (
-                        <button className="p-btn" onClick={() => setModalType('identity')}>REGISTER</button>
-                      )}
-                    </div>
-                    <div className="p-item">
-                      <span>AUTONOMOUS AGENCY</span>
-                      {agent.isAuthorized ? (
-                        <span className="p-status active">ACTIVE</span>
-                      ) : (
-                        <button className="p-btn" onClick={() => setModalType('auth')}>AUTHORIZE</button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </>
-            ) : walletAddress ? (
-              <div className="no-agent">
-                <div className="empty-icon">⚠️</div>
-                <p>NO NEURAL CORE FOUND</p>
-                <button className="init-btn" onClick={initializeAgent}>INITIALIZE AGENT</button>
+          <div className="nav-right">
+            {walletAddress ? (
+              <div className="wallet-pill" onClick={disconnectWallet}>
+                <div className="status-dot"></div>
+                {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                <span className="tooltip">DISCONNECT</span>
               </div>
             ) : (
-              <div className="no-agent locked">
-                <div className="empty-icon">🔒</div>
-                <p>ENCRYPTED - LINK REQUIRED</p>
-              </div>
+              <button className="connect-btn" onClick={() => setModalType('wallet_select')}>
+                CONNECT NEURAL LINK
+              </button>
             )}
           </div>
-        </section>
+        </header>
 
-        {/* Center: Neural Link (Chat) */}
-        <section className="panel chat-panel">
-          <div className="panel-label">NEURAL INTERFACE</div>
-          <Chat agentId={agent?.id} walletAddress={walletAddress} onSendMessage={handleSendMessage} />
-        </section>
+        <div className="testnet-banner">
+          <span className="testnet-icon">⚠</span>
+          PROTOTYPE BUILD &nbsp;·&nbsp; BSC TESTNET &nbsp;·&nbsp; NOT FOR PRODUCTION USE
+          <span className="testnet-icon">⚠</span>
+        </div>
 
-        {/* Right: Activity Stream */}
-        <section className="panel stream-panel">
-          <div className="panel-label">SYSTEM TELEMETRY</div>
-          <div className="telemetry-box">
-            {activities.map(log => (
-              <div key={log.id} className={`log-item ${log.type}`}>
-                <div className="log-header">
-                  <span className="l-type">{log.type.toUpperCase()}</span>
-                  <span className="l-time">{log.time}</span>
+        <div className="grid">
+          {/* Left: Agent Core */}
+          <section className="panel agent-panel">
+            <div className="panel-label">IDENTITY MATRIX</div>
+
+            <div className="agent-display">
+              {loading ? (
+                <div className="sync-overlay">
+                  <div className="scanline"></div>
+                  <p>SYNCING NEURAL WEIGHTS...</p>
                 </div>
-                <p className="l-text">{log.text}</p>
+              ) : agent ? (
+                <>
+                  <div className="agent-visual">
+                    <div className="cyber-circle">
+                      <div className="inner-ring"></div>
+                      <div className="core-glow"></div>
+                      <span className="asi-label">ASI</span>
+                    </div>
+                  </div>
+
+                  <div className="agent-meta">
+                    <div className="meta-row">
+                      <span className="m-label">DESIGNATION</span>
+                      <span className="m-value">{agent.name}</span>
+                    </div>
+                    <div className="meta-row">
+                      <span className="m-label">INNOVATION SCORE</span>
+                      <span className="m-value cyan">{agent.innovationScore}</span>
+                    </div>
+                    <div className="meta-row">
+                      <span className="m-label">AGENT ID</span>
+                      <span className="m-value">#{agent.id.padStart(4, '0')}</span>
+                    </div>
+                  </div>
+
+                  <div className="agent-actions">
+                    <div className="permission-group">
+                      <span className="group-title">SECURITY PROTOCOLS</span>
+                      <div className="p-item">
+                        <span>D.I.D. IDENTITY</span>
+                        {agent.isIdentityRegistered ? (
+                          <span className="p-status active">VERIFIED</span>
+                        ) : (
+                          <button className="p-btn" onClick={() => setModalType('identity')}>REGISTER</button>
+                        )}
+                      </div>
+                      <div className="p-item">
+                        <span>AUTONOMOUS AGENCY</span>
+                        {agent.isAuthorized ? (
+                          <span className="p-status active">ACTIVE</span>
+                        ) : (
+                          <button className="p-btn" onClick={() => setModalType('auth')}>AUTHORIZE</button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : walletAddress ? (
+                <div className="no-agent">
+                  <div className="empty-icon">⚠️</div>
+                  <p>NO NEURAL CORE FOUND</p>
+                  <button className="init-btn" onClick={initializeAgent}>INITIALIZE AGENT</button>
+                </div>
+              ) : (
+                <div className="no-agent locked">
+                  <div className="empty-icon">🔒</div>
+                  <p>ENCRYPTED - LINK REQUIRED</p>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Center: Neural Link (Chat) */}
+          <section className="panel chat-panel">
+            <div className="panel-label">NEURAL INTERFACE</div>
+            <Chat agentId={agent?.id} walletAddress={walletAddress} onSendMessage={handleSendMessage} />
+          </section>
+
+          {/* Right: Activity Stream */}
+          <section className="panel stream-panel">
+            <div className="panel-label">SYSTEM TELEMETRY</div>
+            <div className="telemetry-box">
+              {activities.map(log => (
+                <div key={log.id} className={`log-item ${log.type}`}>
+                  <div className="log-header">
+                    <span className="l-type">{log.type.toUpperCase()}</span>
+                    <span className="l-time">{log.time}</span>
+                  </div>
+                  <p className="l-text">{log.text}</p>
+                </div>
+              ))}
+              {activities.length === 0 && <p className="waiting">BOOTING TELEMETRY STREAM...</p>}
+            </div>
+          </section>
+        </div>
+
+        {/* Wallet Select Modal */}
+        <Modal isOpen={modalType === 'wallet_select'} onClose={() => setModalType(null)} title="Select Provider">
+          <div className="wallet-options">
+            <div className="w-option" onClick={() => { setModalType(null); connectWallet(); }}>
+              <div className="w-icon metamask">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" alt="MetaMask" style={{ width: '100%', height: '100%' }} />
               </div>
-            ))}
-            {activities.length === 0 && <p className="waiting">BOOTING TELEMETRY STREAM...</p>}
-          </div>
-        </section>
-      </div>
-
-      {/* Wallet Select Modal */}
-      <Modal isOpen={modalType === 'wallet_select'} onClose={() => setModalType(null)} title="Select Provider">
-        <div className="wallet-options">
-          <div className="w-option" onClick={() => { setModalType(null); connectWallet(); }}>
-            <div className="w-icon metamask">
-              <svg viewBox="0 0 32 32"><path d="M28.024 16.035l-3.238 4.793 4.848-2.618s1.168-.62.91-1.398c-.286-.87-2.52-1.285-2.52-1.285v.508zM19.342 13.91l4.47-1.3l-2.015-4.22s-.415-.815-1.22-.647c-.83.175-1.235.63-1.235.63v5.537z" fill="#E17120" /><path d="M12.658 13.91l-4.47-1.3 2.015-4.22s.415-.815 1.22-.647c.83.175 1.235.63 1.235.63v5.537z" fill="#E17120" /><path d="M3.976 16.035l3.238 4.793-4.848-2.618s-1.168-.62-.91-1.398c.286-.87 2.52-1.285 2.52-1.285v.508z" fill="#E17120" /><path d="M22.56 22.09l1.795-3.08-4.47-1.488s-1.615-.558-1.522.6c.092 1.157-.046 3.968-.046 3.968z" fill="#E17120" /><path d="M9.44 22.09l-1.795-3.08 4.47-1.488s1.615-.558 1.522.6c-.092 1.157.046 3.968.046 3.968z" fill="#E17120" /><path d="M26.417 19.467l-2.062 1.135 1.764 4.545s.31.81.996.65c.67-.156 1.056-.63 1.056-.63l-1.754-5.7z" fill="#E17120" /><path d="M5.583 19.467l2.062 1.135-1.764 4.545s-.31.81-.996.65c-.67-.156-1.056-.63-1.056-.63l1.754-5.7z" fill="#E17120" /><path d="M16 30l-.25-5s-.082-1.734-.84-1.734h-1.82L9.445 22.09s-.6-.23-.6.643c0 .875 1.455 5.617 1.455 5.617s.24.63.85.63H16z" fill="#E17120" /><path d="M16 30l.25-5s.082-1.734.84-1.734h1.82l3.645 1.176s.6-.23.6.643c0 .875-1.455 5.617-1.455 5.617s-.24.63-.85.63H16z" fill="#E17120" /><circle cx="11.5" cy="11.5" r="1" fill="#231F20" /><circle cx="20.5" cy="11.5" r="1" fill="#231F20" /></svg>
+              <div className="w-info">
+                <span className="w-name">METAMASK</span>
+                <span className="w-desc">LINK TO YOUR BROWSER EXTENSION</span>
+              </div>
+              <div className="w-badge">HOT</div>
             </div>
-            <div className="w-info">
-              <span className="w-name">METAMASK</span>
-              <span className="w-desc">LINK TO YOUR BROWSER EXTENSION</span>
-            </div>
-            <div className="w-badge">HOT</div>
-          </div>
 
-          <div className="w-option disabled">
-            <div className="w-icon">WC</div>
-            <div className="w-info">
-              <span className="w-name">WALLETCONNECT</span>
-              <span className="w-desc">SCAN FROM YOUR MOBILE DEVICE</span>
+            <div className="w-option disabled">
+              <div className="w-icon">
+                <img src="https://walletconnect.org/walletconnect-logo.svg" alt="WalletConnect" style={{ width: '90%', height: '90%' }} />
+              </div>
+              <div className="w-info">
+                <span className="w-name">WALLETCONNECT</span>
+                <span className="w-desc">SCAN FROM YOUR MOBILE DEVICE</span>
+              </div>
             </div>
           </div>
-        </div>
-      </Modal>
+        </Modal>
 
-      {/* Identity Modal */}
-      <Modal isOpen={modalType === 'identity'} onClose={() => setModalType(null)} title="Identity Registration">
-        <p className="mod-desc">Establishing a Decentralized Identifier (DID) locks your agent to this wallet globally. This ensures sovereign data ownership.</p>
-        <div className="mod-action">
-          <button className="confirm-btn" onClick={registerIdentity}>INITIALIZE REGISTRATION</button>
-        </div>
-      </Modal>
+        {/* Identity Modal */}
+        <Modal isOpen={modalType === 'identity'} onClose={() => setModalType(null)} title="Identity Registration">
+          <p className="mod-desc">Establishing a Decentralized Identifier (DID) locks your agent to this wallet globally. This ensures sovereign data ownership.</p>
+          <div className="mod-action">
+            <button className="confirm-btn" onClick={registerIdentity}>INITIALIZE REGISTRATION</button>
+          </div>
+        </Modal>
 
-      {/* Auth Modal */}
-      <Modal isOpen={modalType === 'auth'} onClose={() => setModalType(null)} title="Autonomous Agency">
-        <p className="mod-desc">Granting authorization allows CENCERA.BOT to perform on-chain actions during your absence. Use with caution.</p>
-        <div className="mod-action">
-          <button className="confirm-btn pink" onClick={authorizeAgentAction}>GRANT AGENCY</button>
-        </div>
-      </Modal>
+        {/* Auth Modal */}
+        <Modal isOpen={modalType === 'auth'} onClose={() => setModalType(null)} title="Autonomous Agency">
+          <p className="mod-desc">Granting authorization allows CENCERA.BOT to perform on-chain actions during your absence. Use with caution.</p>
+          <div className="mod-action">
+            <button className="confirm-btn pink" onClick={authorizeAgentAction}>GRANT AGENCY</button>
+          </div>
+        </Modal>
 
-      {/* Success Modal */}
-      <Modal isOpen={modalType === 'success'} onClose={() => setModalType(null)} title="Protocol Success">
-        <div className="success-content">
-          <div className="check-icon">✓</div>
-          <p>{modalData?.message}</p>
-        </div>
-      </Modal>
+        {/* Success Modal */}
+        <Modal isOpen={modalType === 'success'} onClose={() => setModalType(null)} title="Protocol Success">
+          <div className="success-content">
+            <div className="check-icon">✓</div>
+            <p>{modalData?.message}</p>
+          </div>
+        </Modal>
 
-      <style jsx>{`
+        <style jsx global>{`
         .container {
           height: 100vh;
           display: flex;
@@ -459,6 +544,12 @@ export default function Home() {
             color: #555;
             letter-spacing: 1px;
         }
+        .logo-img {
+            height: 44px;
+            width: auto;
+            object-fit: contain;
+            filter: drop-shadow(0 0 6px rgba(0, 243, 255, 0.3));
+        }
 
         .nav-center {
             display: flex;
@@ -514,6 +605,33 @@ export default function Home() {
             box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
         }
         .connect-btn:hover { box-shadow: 0 0 30px rgba(0, 243, 255, 0.5); transform: translateY(-2px); }
+
+        /* Testnet Banner */
+        .testnet-banner {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          background: rgba(255, 180, 0, 0.05);
+          border: 1px solid rgba(255, 180, 0, 0.2);
+          border-radius: 8px;
+          padding: 7px 16px;
+          margin-bottom: 16px;
+          font-family: var(--font-mono);
+          font-size: 0.65rem;
+          font-weight: 700;
+          letter-spacing: 2px;
+          color: rgba(255, 180, 0, 0.8);
+          animation: bannerPulse 3s ease-in-out infinite;
+        }
+        .testnet-icon {
+          font-size: 0.7rem;
+          opacity: 0.7;
+        }
+        @keyframes bannerPulse {
+          0%, 100% { border-color: rgba(255, 180, 0, 0.2); }
+          50% { border-color: rgba(255, 180, 0, 0.5); }
+        }
 
         /* Grid Layout */
         .grid {
@@ -712,7 +830,105 @@ export default function Home() {
 
         @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes scan { from { top: 0; } to { top: 100%; } }
+
+        /* Boot Overlay */
+        .boot-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 9999;
+          background: #000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-direction: column;
+          opacity: 1;
+          transition: opacity 0.6s ease;
+        }
+        .boot-overlay.boot-fading { opacity: 0; pointer-events: none; }
+
+        .boot-content {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 16px;
+          text-align: center;
+        }
+
+        .boot-logo {
+          height: 80px;
+          width: auto;
+          object-fit: contain;
+          filter: drop-shadow(0 0 20px rgba(0, 243, 255, 0.6));
+          animation: bootPulse 1.5s ease-in-out infinite;
+        }
+
+        .boot-title {
+          font-size: 2rem;
+          font-weight: 900;
+          letter-spacing: 6px;
+          background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple));
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+
+        .boot-subtitle {
+          font-family: var(--font-mono);
+          font-size: 0.65rem;
+          letter-spacing: 3px;
+          color: #444;
+          margin-top: -8px;
+        }
+
+        .boot-lines {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          margin-top: 8px;
+          width: 320px;
+          text-align: left;
+        }
+
+        .boot-line {
+          font-family: var(--font-mono);
+          font-size: 0.7rem;
+          color: var(--neon-cyan);
+          opacity: 0;
+          animation: bootLineIn 0.4s ease forwards;
+        }
+
+        .boot-bar-wrap {
+          width: 320px;
+          height: 2px;
+          background: rgba(255,255,255,0.05);
+          border-radius: 2px;
+          margin-top: 16px;
+          overflow: hidden;
+        }
+
+        .boot-bar {
+          height: 100%;
+          width: 0%;
+          background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple));
+          border-radius: 2px;
+          animation: bootProgress 2s ease forwards;
+          box-shadow: 0 0 8px var(--neon-cyan);
+        }
+
+        @keyframes bootPulse {
+          0%, 100% { filter: drop-shadow(0 0 12px rgba(0, 243, 255, 0.4)); }
+          50% { filter: drop-shadow(0 0 28px rgba(0, 243, 255, 0.9)); }
+        }
+        @keyframes bootLineIn {
+          from { opacity: 0; transform: translateX(-8px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes bootProgress {
+          from { width: 0%; }
+          to { width: 100%; }
+        }
       `}</style>
-    </main>
+      </main >
+    </>
   );
 }

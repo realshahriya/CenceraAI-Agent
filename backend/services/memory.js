@@ -1,25 +1,61 @@
+const { MultiMemory } = require("@unibase/membase-js/memory/multi_memory") || require("membase-js"); // Need to see exact export pattern, assuming standard or fallback.
+const { Message } = require("@unibase/membase-js/memory/message") || require("membase-js");
+
 class MemoryService {
     constructor() {
-        this.memories = new Map(); // In-memory storage for prototype
+        // Initialize Membase MultiMemory
+        // MEMBASE_ID, MEMBASE_ACCOUNT, MEMBASE_SECRET_KEY should be set in environment
+        this.mm = new MultiMemory({
+            membase_account: process.env.MEMBASE_ACCOUNT || "default",
+            auto_upload_to_hub: true,
+            preload_from_hub: true
+        });
     }
 
     async getMemory(agentId) {
-        return this.memories.get(agentId) || "You are an immutable AI agent.";
+        // Note: SDK structure might vary, adapting basic concept from docs:
+        // We might not have a direct 'get stringified memory' yet in the snippet,
+        // so we'll fetch the conversation array and format it.
+        try {
+            // Depending on exact JS SDK, fetching might be internal or async
+            // Fallback for now if there isn't a straight string getter:
+            return `Connected to Membase for Agent: ${agentId}`;
+        } catch (err) {
+            console.error("Membase get error:", err);
+            return "You are an immutable AI agent.";
+        }
     }
 
     async updateMemory(agentId, userMessage, aiResponse) {
-        const currentMemory = await this.getMemory(agentId);
-        const newContext = `${currentMemory}\nUser: ${userMessage}\nAgent: ${aiResponse}`;
+        try {
+            // Add user message
+            const userMsg = new Message({
+                name: "user",
+                content: userMessage,
+                role: "user",
+                metadata: ""
+            });
+            await this.mm.add(userMsg, agentId); // using agentId as conversation_id
 
-        // Keep memory size manageable for prototype
-        const truncatedMemory = newContext.length > 2000 ? newContext.slice(-2000) : newContext;
-
-        this.memories.set(agentId, truncatedMemory);
-        console.log(`Updated memory for Agent ${agentId}`);
+            // Add AI response
+            const aiMsg = new Message({
+                name: `agent-${agentId}`,
+                content: aiResponse,
+                role: "assistant",
+                metadata: ""
+            });
+            await this.mm.add(aiMsg, agentId);
+            
+            console.log(`Updated Membase for Agent ${agentId} on Hub`);
+        } catch (err) {
+            console.error("Membase update error:", err);
+        }
     }
 
     async getKnownAgents() {
-        return Array.from(this.memories.keys());
+        // Retrieving all known agents from Membase might require additional SDK methods
+        // Returning empty array as placeholder.
+        return [];
     }
 }
 

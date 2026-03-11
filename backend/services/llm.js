@@ -66,7 +66,12 @@ class LLMService {
             }
 
         } catch (error) {
-            console.error("ChainGPT API Error:", error);
+            // Log full HTTP details to diagnose key/auth issues
+            console.error("ChainGPT API Error:", error?.message || error);
+            if (error?.response) {
+                console.error("  → HTTP Status:", error.response.status);
+                console.error("  → Response Body:", JSON.stringify(error.response.data));
+            }
             // Fallback provided for reliability
             return "I am having trouble connecting to the neural grid. Data link severed.";
         }
