@@ -44,7 +44,7 @@ class LLMService {
             const userPrompt = `Recent Memory Context:\n${context || "No prior memory."}\n\nUser Input: ${message}`;
 
             const response = await axios.post('https://api.asi1.ai/v1/chat/completions', {
-                model: "asi-1-mini",
+                model: "asi1-mini",
                 messages: [
                     { role: "system", content: systemPrompt },
                     { role: "user", content: userPrompt }
@@ -77,7 +77,7 @@ class LLMService {
         try {
             const axios = require('axios');
             const response = await axios.post('https://api.asi1.ai/v1/chat/completions', {
-                model: "asi-1-mini",
+                model: "asi1-mini",
                 messages: [{ role: "user", content: prompt }],
                 response_format: { type: "json_object" }
             }, {

@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 
 interface ChatProps {
   agentId?: string;
@@ -70,9 +71,13 @@ export default function Chat({ agentId, walletAddress, onSendMessage }: ChatProp
         ) : (
           messages.map((msg, idx) => (
             <div key={idx} className={`msg-block ${msg.role}`}>
-              <div className="msg-bubble">
-                {msg.role === 'agent' && <div className="bot-tag">CENCERA.PROTOCUL</div>}
-                {msg.content}
+              <div className="msg-bubble markdown-body">
+                {msg.role === 'agent' && <div className="bot-tag">CENCERA.PROTOCOL</div>}
+                {msg.role === 'agent' ? (
+                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+                ) : (
+                  msg.content
+                )}
               </div>
             </div>
           ))
@@ -164,6 +169,51 @@ export default function Chat({ agentId, walletAddress, onSendMessage }: ChatProp
           font-size: 0.8rem;
           width: 100%;
           text-align: center;
+        }
+
+        /* Markdown Styles */
+        :global(.markdown-body p) {
+          margin-bottom: 0.8em;
+        }
+        :global(.markdown-body p:last-child) {
+          margin-bottom: 0;
+        }
+        :global(.markdown-body strong) {
+          color: var(--neon-cyan);
+          font-weight: 700;
+          text-shadow: 0 0 8px rgba(0, 243, 255, 0.3);
+        }
+        :global(.user .markdown-body strong) {
+          color: #000;
+          text-shadow: none;
+        }
+        :global(.markdown-body ul), :global(.markdown-body ol) {
+          margin-left: 1.5em;
+          margin-bottom: 1em;
+        }
+        :global(.markdown-body li) {
+          margin-bottom: 0.5em;
+        }
+        :global(.markdown-body code) {
+          background: rgba(0, 0, 0, 0.3);
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-family: var(--font-mono);
+          font-size: 0.85em;
+          color: var(--neon-pink);
+        }
+        :global(.markdown-body pre) {
+          background: rgba(0, 0, 0, 0.5);
+          padding: 12px;
+          border-radius: 8px;
+          overflow-x: auto;
+          margin-bottom: 1em;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        :global(.markdown-body pre code) {
+          background: transparent;
+          padding: 0;
+          color: #e0e0e0;
         }
 
         .bot-tag {
