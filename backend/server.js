@@ -7,11 +7,13 @@ const cron = require('node-cron');
 const app = express();
 const PORT = process.env.PORT || 3001;
 const chatRoute = require('./routes/chat');
+const agentRoute = require('./routes/agent');
 
 app.use(cors());
 app.use(express.json());
 
 app.use('/chat', chatRoute);
+app.use('/agent', agentRoute);
 
 app.get('/', (req, res) => {
     res.send('// Cencera Backend Services running');
