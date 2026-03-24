@@ -1,0 +1,14 @@
+{
+  "name": "@cencera/ingestion-pipeline",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@cencera/shared": "^1.0.0",
+    "ethers": "^6.12.1",
+    "kafkajs": "^2.2.4",
+    "pg": "^8.11.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}
