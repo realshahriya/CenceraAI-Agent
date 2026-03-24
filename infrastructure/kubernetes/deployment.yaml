@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  labels:
+    app: api-gateway
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+      - name: api-gateway
+        image: cencera/api-gateway:latest
+        ports:
+        - containerPort: 3000
+        envFrom:
+        - secretRef:
+            name: cencera-secrets
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scoring-engine
+  labels:
+    app: scoring-engine
+spec:
+  replicas: 5 # Start with 5, auto-scaler will increase based on Bull queue depth
+  selector:
+    matchLabels:
+      app: scoring-engine
+  template:
+    metadata:
+      labels:
+        app: scoring-engine
+    spec:
+      containers:
+      - name: scoring-engine
+        image: cencera/scoring-engine:latest
+        envFrom:
+        - secretRef:
+            name: cencera-secrets
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingestion-pipeline
+  labels:
+    app: ingestion-pipeline
+spec:
+  replicas: 2 # One per region/failover constraint
+  selector:
+    matchLabels:
+      app: ingestion-pipeline
+  template:
+    metadata:
+      labels:
+        app: ingestion-pipeline
+    spec:
+      containers:
+      - name: ingestion-pipeline
+        image: cencera/ingestion-pipeline:latest
+        envFrom:
+        - secretRef:
+            name: cencera-secrets
